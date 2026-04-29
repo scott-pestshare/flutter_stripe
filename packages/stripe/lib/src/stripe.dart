@@ -523,6 +523,40 @@ class Stripe {
     }
   }
 
+  /// Creates a [ConfirmationTokenResult] using payment data from mounted Elements.
+  ///
+  /// This API is currently only supported on web.
+  Future<ConfirmationTokenResult> createConfirmationToken({
+    PaymentMethodOptions? options,
+  }) async {
+    await _awaitForSettings();
+
+    if (!kIsWeb) {
+      throw UnsupportedError(
+        'createConfirmationToken is currently only supported on web.',
+      );
+    }
+
+    return _platform.createConfirmationToken(options);
+  }
+
+  /// Submits the mounted Stripe Elements to validate form data.
+  ///
+  /// Call this as soon as the customer presses pay, before any async work
+  /// such as creating a PaymentIntent on your server. Then call
+  /// [createConfirmationToken] once that async work is complete.
+  ///
+  /// This API is currently only supported on web.
+  Future<void> submitPaymentElement() async {
+    await _awaitForSettings();
+    if (!kIsWeb) {
+      throw UnsupportedError(
+        'submitPaymentElement is currently only supported on web.',
+      );
+    }
+    return _platform.submitPaymentElement();
+  }
+
   /// Initializes the payment by providing a configuration
   ///
   /// See [SetupPaymentSheetParameters] for more info. In order to show the

@@ -1,6 +1,7 @@
 //@dart=2.12
 import 'dart:async';
 import 'dart:developer' as dev;
+import 'dart:js_interop';
 import 'dart:ui' as dart_ui;
 
 import 'package:flutter/widgets.dart';
@@ -16,6 +17,7 @@ import 'parser/payment_methods.dart';
 import 'parser/payment_request.dart';
 import 'parser/setup_intent.dart';
 import 'parser/token.dart';
+import 'parser/confirmation_token.dart';
 
 /// An implementation of [StripePlatform] that uses method channels.
 class WebStripe extends StripePlatform {
@@ -688,6 +690,80 @@ class WebStripe extends StripePlatform {
   @override
   Future<List<String>> pollAndClearPendingStripeConnectUrls() {
     throw WebUnsupportedError.method('pollAndClearPendingStripeConnectUrls');
+  }
+
+  @override
+  Future<void> submitPaymentElement() async {
+    if (elements == null) {
+      throw StripeException(
+        error: LocalizedErrorMessage(
+          code: FailureCode.Failed,
+          message:
+              'No Stripe Elements instance is available. Mount a Payment Element before calling submitPaymentElement.',
+        ),
+      );
+    }
+    final jsResult = await elements!.submit().toDart;
+    final resultMap = jsResult.dartify() as Map<dynamic, dynamic>?;
+    final errorMap = resultMap?['error'] as Map<dynamic, dynamic>?;
+    if (errorMap != null) {
+      throw StripeError(
+        message: (errorMap['message'] as String?) ?? 'Submit failed',
+        code: errorMap['code'] as String?,
+      );
+    }
+  }
+
+  @override
+  Future<ConfirmationTokenResult> createConfirmationToken(
+    PaymentMethodOptions? options,
+  ) async {
+    if (elements == null) {
+      throw StripeException(
+        error: LocalizedErrorMessage(
+          code: FailureCode.Failed,
+          message:
+              'No Stripe Elements instance is available. Mount a Payment Element or Express Checkout Element before calling createConfirmationToken.',
+        ),
+      );
+    }
+
+    try {
+      final response = await js.createConfirmationToken(
+        stripe_js.CreateConfirmationTokenOptions(
+          elements: elements!,
+          params: stripe_js.ConfirmationTokenParams(
+            setupFutureUsage: options?.setupFutureUsage?.toJs(),
+          ),
+        ),
+      );
+
+      if (response.error != null) {
+        throw StripeError(
+          message: response.error?.message ?? '',
+          code: response.error!.code,
+        );
+      }
+
+      if (response.confirmationToken == null) {
+        throw StripeException(
+          error: LocalizedErrorMessage(
+            code: FailureCode.Failed,
+            message: 'Stripe did not return a confirmation token.',
+          ),
+        );
+      }
+
+      return response.confirmationToken!.parse();
+    } catch (e) {
+      dev.log('Error creating confirmation token: $e');
+      rethrow;
+    }
+  }
+  
+  @override
+  void setConfirmHandler(ConfirmHandler? handler) {
+    throw WebUnsupportedError.method('setConfirmHandler');
   }
 }
 

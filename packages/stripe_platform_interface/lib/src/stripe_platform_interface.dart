@@ -207,6 +207,15 @@ abstract class StripePlatform extends PlatformInterface {
   /// Set the confirm handler for embedded payment elements
   void setConfirmHandler(ConfirmHandler? handler);
 
+  /// Creates a [ConfirmationTokenResult] using payment data from mounted Elements.
+  Future<ConfirmationTokenResult> createConfirmationToken(
+    PaymentMethodOptions? options,
+  );
+
+  /// Submits the mounted Elements instance to validate form data.
+  /// Must be called before [createConfirmationToken] on web.
+  Future<void> submitPaymentElement();
+  
   Widget buildCard({
     Key? key,
     required CardEditController controller,

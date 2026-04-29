@@ -73,7 +73,9 @@ class _AddPaymentMethodScreenPlatformState
           Padding(
             padding: const EdgeInsets.all(24),
             child: PaymentElement(
-              clientSecret: widget.setupKeys.clientSecret,
+              initialization: PaymentElementInitialization.clientSecret(
+                clientSecret: widget.setupKeys.clientSecret,
+              ),
               onCardChanged: (c) {
                 setState(() => isComplete = c?.complete ?? false);
               },
