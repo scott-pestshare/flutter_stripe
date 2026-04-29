@@ -764,6 +764,20 @@ class MethodChannelStripe extends StripePlatform {
   void setConfirmTokenHandler(ConfirmTokenHandler? handler) {
     _confirmTokenHandler = handler;
   }
+  
+  @override
+  Future<ConfirmationTokenResult> createConfirmationToken(
+    PaymentMethodOptions? options,
+  ) async {
+    final result = await _methodChannel.invokeMapMethod<String, dynamic>(
+      'createConfirmationToken',
+      {'options': options?.toJson() ?? {}},
+    );
+
+    return ResultParser<ConfirmationTokenResult>(
+      parseJson: (json) => ConfirmationTokenResult.fromJson(json),
+    ).parse(result: result!, successResultKey: 'confirmationToken');
+  }
 
   @override
   Future<CanAddCardToWalletResult> canAddCardToWallet(
@@ -812,6 +826,11 @@ class MethodChannelStripe extends StripePlatform {
     }
 
     return IsCardInWalletResult.fromJson(result);
+  }
+  
+  @override
+  Future<void> submitPaymentElement() {
+    throw UnsupportedError('submitPaymentElement is only supported on web.');
   }
 }
 

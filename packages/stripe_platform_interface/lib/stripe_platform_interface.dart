@@ -12,6 +12,7 @@ export 'src/models/collect_bank_account_result.dart';
 export 'src/models/card_brand.dart';
 export 'src/models/card_details.dart';
 export 'src/models/card_field_input.dart';
+export 'src/models/confirmation_token.dart';
 export 'src/models/create_token_data.dart';
 export 'src/models/customer_sheet.dart';
 export 'src/models/errors.dart';

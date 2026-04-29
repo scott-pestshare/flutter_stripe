@@ -25,7 +25,9 @@ class PlatformPaymentElement extends StatelessWidget {
       autofocus: true,
       enablePostalCode: true,
       onCardChanged: (_) {},
-      clientSecret: clientSecret ?? '',
+      initialization: PaymentElementInitialization.clientSecret(
+        clientSecret: clientSecret ?? '',
+      ),
     );
   }
 }

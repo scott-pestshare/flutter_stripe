@@ -21,9 +21,74 @@ typedef PaymentElementTheme = js.ElementTheme;
 
 const _defaultPaymentElementHeight = 300.0;
 
-class PaymentElement extends StatefulWidget {
-  final String clientSecret;
+enum PaymentElementMode { payment, setup, subscription }
+
+class PaymentElementInitialization {
+  const PaymentElementInitialization._({
+    this.clientSecret,
+    this.customerSessionClientSecret,
+    this.mode,
+    this.amount,
+    this.currency,
+  });
+
+  const PaymentElementInitialization.clientSecret({
+    required String clientSecret,
+    String? customerSessionClientSecret,
+  }) : this._(
+         clientSecret: clientSecret,
+         customerSessionClientSecret: customerSessionClientSecret,
+       );
+
+  const PaymentElementInitialization.deferred({
+    required PaymentElementMode mode,
+    int? amount,
+    String? currency,
+    String? customerSessionClientSecret,
+  }) : this._(
+         mode: mode,
+         amount: amount,
+         currency: currency,
+         customerSessionClientSecret: customerSessionClientSecret,
+       );
+
+  final String? clientSecret;
   final String? customerSessionClientSecret;
+  final PaymentElementMode? mode;
+  final int? amount;
+  final String? currency;
+
+  void validate() {
+    if (clientSecret == null && mode == null) {
+      throw ArgumentError(
+        'PaymentElementInitialization requires either clientSecret or mode.',
+      );
+    }
+
+    if (mode == PaymentElementMode.payment &&
+        (amount == null || currency == null)) {
+      throw ArgumentError(
+        'Deferred payment mode requires both amount and currency.',
+      );
+    }
+  }
+
+  String? stripeModeValue() {
+    switch (mode) {
+      case PaymentElementMode.payment:
+        return 'payment';
+      case PaymentElementMode.setup:
+        return 'setup';
+      case PaymentElementMode.subscription:
+        return 'subscription';
+      case null:
+        return null;
+    }
+  }
+}
+
+class PaymentElement extends StatefulWidget {
+  final PaymentElementInitialization initialization;
   final double? width;
   final double? height;
   final double? maxHeight;
@@ -47,8 +112,7 @@ class PaymentElement extends StatefulWidget {
 
   const PaymentElement({
     super.key,
-    required this.clientSecret,
-    this.customerSessionClientSecret,
+    required this.initialization,
     this.width,
     this.height,
     this.maxHeight,
@@ -105,6 +169,8 @@ class PaymentElementState extends State<PaymentElement> {
   void initState() {
     _measuredContentHeight = widget.height ?? _defaultPaymentElementHeight;
     _effectiveHeight = _resolvedHeight;
+    widget.initialization.validate();
+    _measuredContentHeight = widget.height ?? _measuredContentHeight;
 
     _divElement = web.HTMLDivElement()
       ..id = 'payment-element'
@@ -233,11 +299,25 @@ class PaymentElementState extends State<PaymentElement> {
 
   js.JsElementsCreateOptions _createOptionsOnce() {
     final appearance = widget.appearance ?? js.ElementAppearance();
-    return js.JsElementsCreateOptions(
-      clientSecret: widget.clientSecret,
-      customerSessionClientSecret: widget.customerSessionClientSecret,
-      appearance: appearance.toJson().jsify() as js.JsElementAppearance,
-    );
+    
+    // Build the options map with only non-null values to avoid passing
+    // null to Stripe.js, which rejects null values for clientSecret field
+    final options = <String, dynamic>{
+      'appearance': appearance.toJson(),
+      if (widget.initialization.clientSecret != null)
+        'clientSecret': widget.initialization.clientSecret,
+      if (widget.initialization.customerSessionClientSecret != null)
+        'customerSessionClientSecret':
+            widget.initialization.customerSessionClientSecret,
+      if (widget.initialization.stripeModeValue() != null)
+        'mode': widget.initialization.stripeModeValue(),
+      if (widget.initialization.amount != null)
+        'amount': widget.initialization.amount,
+      if (widget.initialization.currency != null)
+        'currency': widget.initialization.currency,
+    };
+    
+    return options.jsify()! as js.JsElementsCreateOptions;
   }
 
   js.PaymentElementOptions _elementOptionsOnce() {

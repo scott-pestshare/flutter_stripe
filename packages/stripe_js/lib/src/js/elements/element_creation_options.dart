@@ -10,14 +10,20 @@ extension type JsElementsCreateOptions._(JSObject o) {
     String? clientSecret,
     JsElementAppearance? appearance,
     String? customerSessionClientSecret,
+    String? mode,
+    int? amount,
+    String? currency,
     String loader,
   });
 
-  external JSArray<Font> fonts;
-  external String locale;
-  external String clientSecret;
-  external String customerSessionClientSecret;
-  external JsElementAppearance appearance;
+  external JSArray<Font>? fonts;
+  external String? locale;
+  external String? clientSecret;
+  external String? customerSessionClientSecret;
+  external String? mode;
+  external int? amount;
+  external String? currency;
+  external JsElementAppearance? appearance;
 }
 
 extension type JsElementAppearance._(JSObject o) {

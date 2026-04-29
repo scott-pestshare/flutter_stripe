@@ -31,3 +31,9 @@ extension type JSTokenResponse._(JSMap o) implements JSMap {
     return TokenResponse.fromJson(o.toDart);
   }
 }
+
+extension type JSConfirmationTokenResponse._(JSMap o) implements JSMap {
+  ConfirmationTokenResponse get toDart {
+    return ConfirmationTokenResponse.fromJson(o.toDart);
+  }
+}
