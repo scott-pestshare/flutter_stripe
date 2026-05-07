@@ -362,6 +362,7 @@ class StripeSdkModule(
     }
 
     paymentSheetManager?.paymentSheetIntentCreationCallback?.complete(params)
+    promise.resolve(null)
   }
 
   @ReactMethod
@@ -390,6 +391,7 @@ class StripeSdkModule(
     }
 
     paymentSheetManager?.paymentSheetConfirmationTokenCreationCallback?.complete(params)
+    promise.resolve(null)
   }
 
   @ReactMethod
