@@ -1,6 +1,8 @@
+import 'dart:developer' as dev;
 import 'dart:js_interop';
 import 'dart:ui_web' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:stripe_js/stripe_api.dart' as js;
 import 'package:stripe_js/stripe_js.dart' as js;
@@ -110,6 +112,16 @@ class PaymentElement extends StatefulWidget {
   final js.PaymentElementWalletOptions? wallets;
   final js.PaymentElementApplePayOptions? applePay;
 
+  /// The locale used to render the Payment Element, e.g. `'en'` or `'es'`.
+  ///
+  /// Passed straight through to Stripe.js's `elements()` call. Stripe.js
+  /// only reads this when the Elements group is created, so changing it on
+  /// an already-mounted [PaymentElement] has no effect — give the widget a
+  /// new [key] (e.g. keyed on this value) to force it to remount when the
+  /// locale changes. Defaults to Stripe's `'auto'` behavior (detected from
+  /// the browser) when omitted.
+  final String? locale;
+
   const PaymentElement({
     super.key,
     required this.initialization,
@@ -133,6 +145,7 @@ class PaymentElement extends StatefulWidget {
     this.terms,
     this.wallets,
     this.applePay,
+    this.locale,
   }) : assert(maxHeight == null || maxHeight > 0);
 
   @override
@@ -304,6 +317,7 @@ class PaymentElementState extends State<PaymentElement> {
     // null to Stripe.js, which rejects null values for clientSecret field
     final options = <String, dynamic>{
       'appearance': appearance.toJson(),
+      if (widget.locale != null) 'locale': widget.locale,
       if (widget.initialization.clientSecret != null)
         'clientSecret': widget.initialization.clientSecret,
       if (widget.initialization.customerSessionClientSecret != null)
@@ -343,6 +357,15 @@ class PaymentElementState extends State<PaymentElement> {
         widget.maxHeight != oldWidget.maxHeight) {
       _measuredContentHeight = widget.height ?? _measuredContentHeight;
       setState(_applyHostHeight);
+    }
+    if (kDebugMode && widget.locale != oldWidget.locale) {
+      dev.log(
+        'WARNING! PaymentElement.locale changed from '
+        '"${oldWidget.locale}" to "${widget.locale}" but Stripe.js only '
+        'applies the locale when the Elements group is created. Give the '
+        'PaymentElement a new key (e.g. ValueKey(locale)) to remount it '
+        'when the locale changes.',
+      );
     }
     super.didUpdateWidget(oldWidget);
   }
