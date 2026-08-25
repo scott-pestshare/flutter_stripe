@@ -13,9 +13,9 @@ extension ExtensionCreateConfirmationToken on Stripe {
     CreateConfirmationTokenOptions options,
   ) {
     final jsOptions = options.toJson().jsify();
-    return _createConfirmationToken(jsOptions)
-        .toDart
-        .then((response) => response.toDart);
+    return _createConfirmationToken(
+      jsOptions,
+    ).toDart.then((response) => response.toDart);
   }
 
   @JS('createConfirmationToken')

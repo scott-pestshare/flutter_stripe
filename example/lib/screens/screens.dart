@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:stripe_example/screens/address_sheet/address_sheet.dart';
 import 'package:stripe_example/screens/customer_sheet/customer_sheet_screen.dart';
 import 'package:stripe_example/screens/others/can_add_to_wallet_screen.dart';
+import 'package:stripe_example/screens/payment_sheet/confirmation_token/confirmation_token.dart';
 import 'package:stripe_example/screens/payment_sheet/express_checkout/express_checkout_element.dart';
 import 'package:stripe_example/screens/payment_sheet/embedded_payment_element_screen.dart';
 import 'package:stripe_example/screens/payment_sheet/payment_element/payment_element.dart';
@@ -139,6 +140,11 @@ class Example extends StatelessWidget {
         Example(
           title: 'Web Payment Element',
           builder: (c) => PaymentElementExample(),
+          platformsSupported: [DevicePlatform.web],
+        ),
+        Example(
+          title: 'Web Payment Element (Confirmation Token)',
+          builder: (c) => ConfirmationTokenExample(),
           platformsSupported: [DevicePlatform.web],
         ),
         Example(
