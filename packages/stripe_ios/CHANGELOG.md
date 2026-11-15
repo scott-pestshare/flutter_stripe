@@ -1,3 +1,33 @@
+## 15.0.0
+
+**Breaking changes**
+- This package now requires Flutter 3.47.0 or higher.
+- Upgrade to Freezed 4
+
+**Features**
+- #2478 Migrate to the new Material UI package to accommodate its split from the Flutter SDK.
+- Support for Flutter 3.50.
+
+**Fixes**
+- #2500 Fix issues with native platform views.
+- #2503 Android: Remove duplicate push provisioning declaration to comply with newer Gradle versions.
+
+## 14.2.0
+
+**Features**:
+- Sync with Stripe React Native [0.81.0](https://github.com/stripe/stripe-react-native/releases/tag/v0.81.0)
+
+**Fixes**
+- Read SetupIntent paymentMethodId from the expanded paymentMethod when it is null #2479
+
+## 14.1.0
+
+**Features**:
+- Sync with Stripe React Native [0.76.0](https://github.com/stripe/stripe-react-native/releases/tag/v0.76.0)
+- Update Stripe iOS SDK from 26.3.0 to 26.9.0
+- Add support for the Twint payment method
+- Apple Pay: add `supportedNetworks` to `ApplePayParams` to restrict the card networks offered in the Apple Pay sheet
+
 ## 14.0.0
 
 **Features**:

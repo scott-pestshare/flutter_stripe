@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'create_confirmation_token_options.dart';
@@ -9,6 +9,7 @@ part of 'create_confirmation_token_options.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 
@@ -28,16 +29,21 @@ $CreateConfirmationTokenOptionsCopyWith<CreateConfirmationTokenOptions> get copy
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CreateConfirmationTokenOptions&&(identical(other.elements, elements) || other.elements == elements)&&(identical(other.params, params) || other.params == params));
+  final _this = this as CreateConfirmationTokenOptions;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CreateConfirmationTokenOptions&&(identical(other.elements, _this.elements) || other.elements == _this.elements)&&(identical(other.params, _this.params) || other.params == _this.params));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,elements,params);
+int get hashCode {
+  final _this = this as CreateConfirmationTokenOptions;
+  return Object.hash(runtimeType,_this.elements,_this.params);
+}
 
 @override
 String toString() {
-  return 'CreateConfirmationTokenOptions(elements: $elements, params: $params)';
+  final _this = this as CreateConfirmationTokenOptions;
+  return 'CreateConfirmationTokenOptions(elements: ${_this.elements}, params: ${_this.params})';
 }
 
 
@@ -66,7 +72,7 @@ class _$CreateConfirmationTokenOptionsCopyWithImpl<$Res>
 /// Create a copy of CreateConfirmationTokenOptions
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? elements = null,Object? params = freezed,}) {
-  return _then(_self.copyWith(
+  return _then(CreateConfirmationTokenOptions(
 elements: null == elements ? _self.elements : elements // ignore: cast_nullable_to_non_nullable
 as Elements,params: freezed == params ? _self.params : params // ignore: cast_nullable_to_non_nullable
 as ConfirmationTokenParams?,
@@ -241,16 +247,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CreateConfirmationTokenOptions&&(identical(other.elements, elements) || other.elements == elements)&&(identical(other.params, params) || other.params == params));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _CreateConfirmationTokenOptions&&(identical(other.elements, elements) || other.elements == elements)&&(identical(other.params, params) || other.params == params));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,elements,params);
+int get hashCode {
+    return Object.hash(runtimeType,elements,params);
+}
 
 @override
 String toString() {
-  return 'CreateConfirmationTokenOptions(elements: $elements, params: $params)';
+    return 'CreateConfirmationTokenOptions(elements: $elements, params: $params)';
 }
 
 
@@ -318,16 +326,21 @@ $ConfirmationTokenParamsCopyWith<ConfirmationTokenParams> get copyWith => _$Conf
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ConfirmationTokenParams&&(identical(other.paymentMethodData, paymentMethodData) || other.paymentMethodData == paymentMethodData)&&(identical(other.returnUrl, returnUrl) || other.returnUrl == returnUrl)&&(identical(other.shipping, shipping) || other.shipping == shipping)&&(identical(other.setupFutureUsage, setupFutureUsage) || other.setupFutureUsage == setupFutureUsage));
+  final _this = this as ConfirmationTokenParams;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ConfirmationTokenParams&&(identical(other.paymentMethodData, _this.paymentMethodData) || other.paymentMethodData == _this.paymentMethodData)&&(identical(other.returnUrl, _this.returnUrl) || other.returnUrl == _this.returnUrl)&&(identical(other.shipping, _this.shipping) || other.shipping == _this.shipping)&&(identical(other.setupFutureUsage, _this.setupFutureUsage) || other.setupFutureUsage == _this.setupFutureUsage));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,paymentMethodData,returnUrl,shipping,setupFutureUsage);
+int get hashCode {
+  final _this = this as ConfirmationTokenParams;
+  return Object.hash(runtimeType,_this.paymentMethodData,_this.returnUrl,_this.shipping,_this.setupFutureUsage);
+}
 
 @override
 String toString() {
-  return 'ConfirmationTokenParams(paymentMethodData: $paymentMethodData, returnUrl: $returnUrl, shipping: $shipping, setupFutureUsage: $setupFutureUsage)';
+  final _this = this as ConfirmationTokenParams;
+  return 'ConfirmationTokenParams(paymentMethodData: ${_this.paymentMethodData}, returnUrl: ${_this.returnUrl}, shipping: ${_this.shipping}, setupFutureUsage: ${_this.setupFutureUsage})';
 }
 
 
@@ -356,7 +369,7 @@ class _$ConfirmationTokenParamsCopyWithImpl<$Res>
 /// Create a copy of ConfirmationTokenParams
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? paymentMethodData = freezed,Object? returnUrl = freezed,Object? shipping = freezed,Object? setupFutureUsage = freezed,}) {
-  return _then(_self.copyWith(
+  return _then(ConfirmationTokenParams(
 paymentMethodData: freezed == paymentMethodData ? _self.paymentMethodData : paymentMethodData // ignore: cast_nullable_to_non_nullable
 as ConfirmationTokenPaymentMethodData?,returnUrl: freezed == returnUrl ? _self.returnUrl : returnUrl // ignore: cast_nullable_to_non_nullable
 as String?,shipping: freezed == shipping ? _self.shipping : shipping // ignore: cast_nullable_to_non_nullable
@@ -547,16 +560,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ConfirmationTokenParams&&(identical(other.paymentMethodData, paymentMethodData) || other.paymentMethodData == paymentMethodData)&&(identical(other.returnUrl, returnUrl) || other.returnUrl == returnUrl)&&(identical(other.shipping, shipping) || other.shipping == shipping)&&(identical(other.setupFutureUsage, setupFutureUsage) || other.setupFutureUsage == setupFutureUsage));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ConfirmationTokenParams&&(identical(other.paymentMethodData, paymentMethodData) || other.paymentMethodData == paymentMethodData)&&(identical(other.returnUrl, returnUrl) || other.returnUrl == returnUrl)&&(identical(other.shipping, shipping) || other.shipping == shipping)&&(identical(other.setupFutureUsage, setupFutureUsage) || other.setupFutureUsage == setupFutureUsage));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,paymentMethodData,returnUrl,shipping,setupFutureUsage);
+int get hashCode {
+    return Object.hash(runtimeType,paymentMethodData,returnUrl,shipping,setupFutureUsage);
+}
 
 @override
 String toString() {
-  return 'ConfirmationTokenParams(paymentMethodData: $paymentMethodData, returnUrl: $returnUrl, shipping: $shipping, setupFutureUsage: $setupFutureUsage)';
+    return 'ConfirmationTokenParams(paymentMethodData: $paymentMethodData, returnUrl: $returnUrl, shipping: $shipping, setupFutureUsage: $setupFutureUsage)';
 }
 
 
@@ -638,16 +653,21 @@ $ConfirmationTokenPaymentMethodDataCopyWith<ConfirmationTokenPaymentMethodData> 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ConfirmationTokenPaymentMethodData&&(identical(other.billingDetails, billingDetails) || other.billingDetails == billingDetails));
+  final _this = this as ConfirmationTokenPaymentMethodData;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ConfirmationTokenPaymentMethodData&&(identical(other.billingDetails, _this.billingDetails) || other.billingDetails == _this.billingDetails));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,billingDetails);
+int get hashCode {
+  final _this = this as ConfirmationTokenPaymentMethodData;
+  return Object.hash(runtimeType,_this.billingDetails);
+}
 
 @override
 String toString() {
-  return 'ConfirmationTokenPaymentMethodData(billingDetails: $billingDetails)';
+  final _this = this as ConfirmationTokenPaymentMethodData;
+  return 'ConfirmationTokenPaymentMethodData(billingDetails: ${_this.billingDetails})';
 }
 
 
@@ -676,7 +696,7 @@ class _$ConfirmationTokenPaymentMethodDataCopyWithImpl<$Res>
 /// Create a copy of ConfirmationTokenPaymentMethodData
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? billingDetails = freezed,}) {
-  return _then(_self.copyWith(
+  return _then(ConfirmationTokenPaymentMethodData(
 billingDetails: freezed == billingDetails ? _self.billingDetails : billingDetails // ignore: cast_nullable_to_non_nullable
 as BillingDetails?,
   ));
@@ -849,16 +869,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ConfirmationTokenPaymentMethodData&&(identical(other.billingDetails, billingDetails) || other.billingDetails == billingDetails));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ConfirmationTokenPaymentMethodData&&(identical(other.billingDetails, billingDetails) || other.billingDetails == billingDetails));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,billingDetails);
+int get hashCode {
+    return Object.hash(runtimeType,billingDetails);
+}
 
 @override
 String toString() {
-  return 'ConfirmationTokenPaymentMethodData(billingDetails: $billingDetails)';
+    return 'ConfirmationTokenPaymentMethodData(billingDetails: $billingDetails)';
 }
 
 

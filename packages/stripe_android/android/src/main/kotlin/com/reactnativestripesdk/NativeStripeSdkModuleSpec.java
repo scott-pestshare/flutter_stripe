@@ -255,10 +255,6 @@ public abstract class NativeStripeSdkModuleSpec extends ReactContextBaseJavaModu
 
   @ReactMethod
   @DoNotStrip
-  public abstract void createEmbeddedPaymentElementWithCheckout(String sessionKey, ReadableMap configuration, Promise promise);
-
-  @ReactMethod
-  @DoNotStrip
   public abstract void confirmEmbeddedPaymentElement(double viewTag, Promise promise);
 
   @ReactMethod
@@ -283,6 +279,10 @@ public abstract class NativeStripeSdkModuleSpec extends ReactContextBaseJavaModu
 
   @ReactMethod
   @DoNotStrip
+  public abstract void presentExternalWebPage(String url, Promise promise);
+
+  @ReactMethod
+  @DoNotStrip
   public abstract void downloadAndShareFile(String url, @Nullable String filename, Promise promise);
 
   @ReactMethod
@@ -299,43 +299,59 @@ public abstract class NativeStripeSdkModuleSpec extends ReactContextBaseJavaModu
 
   @ReactMethod
   @DoNotStrip
-  public abstract void initCheckoutSession(String clientSecret, ReadableMap configuration, Promise promise);
-
-  @ReactMethod
-  @DoNotStrip
-  public abstract void checkoutUpdateShippingAddress(String sessionKey, ReadableMap address, @Nullable String name, @Nullable String phone, Promise promise);
-
-  @ReactMethod
-  @DoNotStrip
-  public abstract void checkoutApplyPromotionCode(String sessionKey, String code, Promise promise);
-
-  @ReactMethod
-  @DoNotStrip
-  public abstract void checkoutRemovePromotionCode(String sessionKey, Promise promise);
-
-  @ReactMethod
-  @DoNotStrip
-  public abstract void checkoutUpdateLineItemQuantity(String sessionKey, String lineItemId, double quantity, Promise promise);
-
-  @ReactMethod
-  @DoNotStrip
-  public abstract void checkoutSelectShippingOption(String sessionKey, String id, Promise promise);
-
-  @ReactMethod
-  @DoNotStrip
-  public abstract void checkoutRunServerUpdateStart(String sessionKey, Promise promise);
-
-  @ReactMethod
-  @DoNotStrip
-  public abstract void checkoutRunServerUpdateComplete(String sessionKey, @Nullable String error, Promise promise);
-
-  @ReactMethod
-  @DoNotStrip
   public abstract void initLinkController(ReadableMap params, Promise promise);
 
   @ReactMethod
   @DoNotStrip
   public abstract void presentLinkController(Promise promise);
+
+  @ReactMethod
+  @DoNotStrip
+  public abstract void confirmLinkControllerSetupIntent(ReadableMap params, Promise promise);
+
+  @ReactMethod
+  @DoNotStrip
+  public abstract void createCheckout(ReadableMap params, String controllerId, Promise promise);
+
+  @ReactMethod
+  @DoNotStrip
+  public abstract void destroyCheckout(String controllerId, Promise promise);
+
+  @ReactMethod
+  @DoNotStrip
+  public abstract void updateCheckoutEmail(String controllerId, @Nullable String email, Promise promise);
+
+  @ReactMethod
+  @DoNotStrip
+  public abstract void updateCheckoutShippingAddress(String controllerId, ReadableMap params, Promise promise);
+
+  @ReactMethod
+  @DoNotStrip
+  public abstract void applyCheckoutPromotionCode(String controllerId, String promotionCode, Promise promise);
+
+  @ReactMethod
+  @DoNotStrip
+  public abstract void removeCheckoutPromotionCode(String controllerId, Promise promise);
+
+  @ReactMethod
+  @DoNotStrip
+  public abstract void clearCheckoutPaymentOption(String controllerId, Promise promise);
+
+  @ReactMethod
+  @DoNotStrip
+  public abstract void confirmCheckout(String controllerId, Promise promise);
+
+  @ReactMethod
+  @DoNotStrip
+  public abstract void presentCheckoutPaymentElement(String controllerId, Promise promise);
+
+  @ReactMethod
+  @DoNotStrip
+  public abstract void runCheckoutServerUpdate(String controllerId, String operationId, Promise promise);
+
+  @ReactMethod
+  @DoNotStrip
+  public abstract void completeCheckoutServerUpdate(String controllerId, String operationId, @Nullable String error, Promise promise);
 
   @ReactMethod
   @DoNotStrip

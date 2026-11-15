@@ -307,6 +307,7 @@ class Mappers {
         case STPPaymentMethodType.revolutPay: return "RevolutPay"
         case STPPaymentMethodType.payByBank: return "PayByBank"
         case STPPaymentMethodType.link: return "Link"
+        case STPPaymentMethodType.twint: return "Twint"
         case STPPaymentMethodType.unknown: return "Unknown"
         default: return "Unknown"
         }
@@ -340,6 +341,7 @@ class Mappers {
             case "CashApp": return STPPaymentMethodType.cashApp
             case "RevolutPay": return STPPaymentMethodType.revolutPay
             case "PayByBank": return STPPaymentMethodType.payByBank
+            case "Twint": return STPPaymentMethodType.twint
             case "Link": return STPPaymentMethodType.link
             default: return STPPaymentMethodType.unknown
             }
@@ -1171,6 +1173,7 @@ class Mappers {
 
         let mappedEvent: [String: Any] = [
             "name": event.name.rawValue,
+            "financialConnectionsSessionId": event.financialConnectionsSessionId,
             "metadata": metadata,
         ]
 
@@ -1274,6 +1277,7 @@ class Mappers {
             firstName: normalizedString(params["firstName"]),
             lastName: normalizedString(params["lastName"]),
             idNumber: normalizedString(params["idNumber"]),
+            idType: IdType(rawValue: params["idType"] as? String ?? "") ?? .socialSecurityNumber,
             address: address,
             dateOfBirth: dateOfBirth,
             birthCountry: normalizedString(params["birthCountry"]),
@@ -1296,6 +1300,8 @@ class Mappers {
         if let idNumber = kycInfo.idNumber {
             result["idNumber"] = idNumber
         }
+
+        result["idType"] = kycInfo.idType.rawValue
 
         if let address = kycInfo.address {
             result["address"] = mapFromKycAddress(address)

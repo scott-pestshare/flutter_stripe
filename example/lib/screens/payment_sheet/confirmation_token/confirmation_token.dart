@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:stripe_example/widgets/loading_button.dart';
 
 import 'platforms/confirmation_token.dart'

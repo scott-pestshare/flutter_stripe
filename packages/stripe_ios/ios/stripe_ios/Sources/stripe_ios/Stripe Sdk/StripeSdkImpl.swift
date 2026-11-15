@@ -1,7 +1,7 @@
 import AuthenticationServices
-import Combine
 import Foundation
 import PassKit
+import SafariServices
 @_spi(DashboardOnly) @_spi(STP) import Stripe
 @_spi(STP) @_spi(ReactNativeSDK) import StripeCore
 import StripeFinancialConnections
@@ -36,15 +36,10 @@ private func getDeviceType() -> String {
 
 @objc(StripeSdkImpl)
 public class StripeSdkImpl: NSObject, UIAdaptivePresentationControllerDelegate {
+
     @objc public static let shared = StripeSdkImpl()
 
-    static var isNewArchitecture: Bool {
-        #if RCT_NEW_ARCH_ENABLED
-        return true
-        #else
-        return false
-        #endif
-    }
+    static let isNewArchitecture = true
 
     static var reactNativeVersion: String {
         let version = RCTGetReactNativeVersion()
@@ -59,13 +54,16 @@ public class StripeSdkImpl: NSObject, UIAdaptivePresentationControllerDelegate {
     weak var cardFieldView: CardFieldView?
     weak var cardFormView: CardFormView?
 
+    @MainActor var checkoutControllers: [String: NativeCheckoutControllerInstance] = [:]
+    @MainActor var pendingCheckoutCreations: [String: Task<Void, Never>] = [:]
+    @MainActor var checkoutPresentingViewControllerProvider: () -> UIViewController? = {
+        RCTPresentedViewController()
+    }
+
     var merchantIdentifier: String?
 
     internal var paymentSheet: PaymentSheet?
     internal var paymentSheetFlowController: PaymentSheet.FlowController?
-    internal var checkoutInstances: [String: Checkout] = [:]
-    internal var checkoutStateCancellables: [String: AnyCancellable] = [:]
-    internal var serverUpdateContinuations: [String: CheckedContinuation<Void, Error>] = [:]
     var paymentSheetIntentCreationCallback: ((Result<String, Error>) -> Void)?
     var paymentSheetConfirmationTokenIntentCreationCallback: ((Result<String, Error>) -> Void)?
 
@@ -120,7 +118,7 @@ public class StripeSdkImpl: NSObject, UIAdaptivePresentationControllerDelegate {
     var setupIntentClientSecretForCustomerAttachCallback: ((String) -> Void)?
     var customPaymentMethodResultCallback: ((PaymentSheetResult) -> Void)?
     var clientSecretProviderSetupIntentClientSecretCallback: ((String) -> Void)?
-    var clientSecretProviderCustomerSessionClientSecretCallback: ((CustomerSessionClientSecret) -> Void)?
+    @MainActor var customerSessionRequests: CustomerSessionRequestRegistry?
 
 #if canImport(StripeCryptoOnramp)
     var cryptoOnrampCoordinator: CryptoOnrampCoordinator?
@@ -140,6 +138,20 @@ public class StripeSdkImpl: NSObject, UIAdaptivePresentationControllerDelegate {
 
     var authenticationSession: ASWebAuthenticationSession?
     var authenticationContextProvider: Any?
+
+    @objc public func invalidateCheckoutControllers() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            let pendingCreations = Array(pendingCheckoutCreations.values)
+            pendingCheckoutCreations.removeAll()
+            pendingCreations.forEach { $0.cancel() }
+            let controllers = Array(checkoutControllers.values)
+            checkoutControllers.removeAll()
+            controllers.forEach { $0.destroy() }
+        }
+    }
+
+    static let authenticatedWebViewReturnURLScheme = "stripe-connect"
 
     @objc public func getConstants() -> [AnyHashable: Any] {
         return [
@@ -855,6 +867,13 @@ public class StripeSdkImpl: NSObject, UIAdaptivePresentationControllerDelegate {
 
         let style = STPBankAccountCollectorUserInterfaceStyle(from: params)
         let bankAccountCollector = STPBankAccountCollector(style: style)
+        let preCollectedConsent: FinancialConnectionsPreCollectedConsent?
+        do {
+            preCollectedConsent = try FinancialConnections.mapToPreCollectedConsent(params)
+        } catch {
+            resolve(Errors.createError(ErrorType.Failed, error.localizedDescription))
+            return
+        }
 
         if isPaymentIntent {
             DispatchQueue.main.async {
@@ -862,6 +881,7 @@ public class StripeSdkImpl: NSObject, UIAdaptivePresentationControllerDelegate {
                     clientSecret: clientSecret as String,
                     returnURL: connectionsReturnURL,
                     params: collectParams,
+                    preCollectedConsent: preCollectedConsent,
                     from: findViewControllerPresenter(from: RCTKeyWindow()?.rootViewController ?? UIViewController()),
                     onEvent: onEvent
                 ) { intent, error in
@@ -889,6 +909,7 @@ public class StripeSdkImpl: NSObject, UIAdaptivePresentationControllerDelegate {
                     clientSecret: clientSecret as String,
                     returnURL: connectionsReturnURL,
                     params: collectParams,
+                    preCollectedConsent: preCollectedConsent,
                     from: findViewControllerPresenter(from: RCTKeyWindow()?.rootViewController ?? UIViewController()),
                     onEvent: onEvent
                 ) { intent, error in
@@ -1188,10 +1209,19 @@ public class StripeSdkImpl: NSObject, UIAdaptivePresentationControllerDelegate {
             resolve(result)
         }
 
+        let preCollectedConsent: FinancialConnectionsPreCollectedConsent?
+        do {
+            preCollectedConsent = try FinancialConnections.mapToPreCollectedConsent(params)
+        } catch {
+            wrappedResolve(Errors.createError(ErrorType.Failed, error.localizedDescription))
+            return
+        }
+
         FinancialConnections.presentForToken(
             withClientSecret: clientSecret,
             returnURL: returnURL,
             configuration: configuration,
+            preCollectedConsent: preCollectedConsent,
             onEvent: onEvent,
             resolve: wrappedResolve
         )
@@ -1234,10 +1264,19 @@ public class StripeSdkImpl: NSObject, UIAdaptivePresentationControllerDelegate {
             resolve(result)
         }
 
+        let preCollectedConsent: FinancialConnectionsPreCollectedConsent?
+        do {
+            preCollectedConsent = try FinancialConnections.mapToPreCollectedConsent(params)
+        } catch {
+            wrappedResolve(Errors.createError(ErrorType.Failed, error.localizedDescription))
+            return
+        }
+
         FinancialConnections.present(
             withClientSecret: clientSecret,
             returnURL: returnURL,
             configuration: configuration,
+            preCollectedConsent: preCollectedConsent,
             onEvent: onEvent,
             resolve: wrappedResolve
         )
@@ -1418,6 +1457,27 @@ public class StripeSdkImpl: NSObject, UIAdaptivePresentationControllerDelegate {
         Task {
             do {
                 try await coordinator.registerWalletAddress(walletAddress: address, network: cryptoNetwork)
+                resolve([:])  // Return empty object on success
+            } catch {
+                let errorResult = OnrampErrors.createFailedError(error)
+                resolve(["error": errorResult["error"]!])
+            }
+        }
+    }
+
+    @objc(deleteWalletAddress:resolver:rejecter:)
+    public func deleteWalletAddress(
+        walletId: String,
+        resolver resolve: @escaping RCTPromiseResolveBlock,
+        rejecter reject: @escaping RCTPromiseRejectBlock
+    ) {
+        guard isPublishableKeyAvailable(resolve), let coordinator = requireOnrampCoordinator(resolve) else {
+            return
+        }
+
+        Task {
+            do {
+                try await coordinator.deleteWalletAddress(walletId: walletId)
                 resolve([:])  // Return empty object on success
             } catch {
                 let errorResult = OnrampErrors.createFailedError(error)
@@ -1985,7 +2045,7 @@ public class StripeSdkImpl: NSObject, UIAdaptivePresentationControllerDelegate {
             // Create the authentication session with the configured URL scheme
             self.authenticationSession = ASWebAuthenticationSession(
                 url: url,
-                callbackURLScheme: nil
+                callbackURLScheme: StripeSdkImpl.authenticatedWebViewReturnURLScheme
             ) { callbackURL, error in
                 if let error = error {
                     // User canceled or an error occurred
@@ -2023,6 +2083,33 @@ public class StripeSdkImpl: NSObject, UIAdaptivePresentationControllerDelegate {
                 self.authenticationSession = nil
                 self.authenticationContextProvider = nil
                 return
+            }
+        }
+    }
+
+    @objc(presentExternalWebPage:resolver:rejecter:)
+    public func presentExternalWebPage(
+        url: String,
+        resolver resolve: @escaping RCTPromiseResolveBlock,
+        rejecter reject: @escaping RCTPromiseRejectBlock
+    ) {
+        guard let url = URL(string: url),
+              let scheme = url.scheme?.lowercased(),
+              ["http", "https"].contains(scheme) else {
+            reject(ErrorType.Failed, "Invalid web URL", nil)
+            return
+        }
+
+        DispatchQueue.main.async {
+            let safariViewController = SFSafariViewController(url: url)
+            safariViewController.dismissButtonStyle = .done
+            safariViewController.modalPresentationStyle = .pageSheet
+
+            let presenter = findViewControllerPresenter(
+                from: RCTKeyWindow()?.rootViewController ?? UIViewController()
+            )
+            presenter.present(safariViewController, animated: true) {
+                resolve(nil)
             }
         }
     }

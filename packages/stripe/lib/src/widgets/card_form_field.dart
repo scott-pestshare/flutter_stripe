@@ -3,13 +3,14 @@ import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 
 import '../utils.dart';
 import 'keep_visible_on_focus.dart';
+import 'platform_view_focus_bridge.dart';
 
 /// Customizable form that collects card information.
 ///
@@ -173,9 +174,13 @@ class CardFormEditController extends ChangeNotifier {
 }
 
 class _CardFormFieldState extends State<CardFormField> {
+  // This node only observes the focus: it hands the focus over to the node the
+  // framework creates for the platform view, see [PlatformViewFocusBridge].
+  // Hence it has to allow focusable descendants and stay out of the traversal,
+  // otherwise the form is visited twice.
   final FocusNode _node = FocusNode(
     debugLabel: 'CardFormField',
-    descendantsAreFocusable: false,
+    skipTraversal: true,
   );
 
   CardFormEditController? _fallbackController;
@@ -187,22 +192,35 @@ class _CardFormFieldState extends State<CardFormField> {
 
   @override
   void initState() {
-    _node.addListener(updateState);
+    _updateFocusability();
     super.initState();
   }
 
   @override
-  void dispose() {
+  void didUpdateWidget(covariant CardFormField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.disabled != oldWidget.disabled) {
+      _updateFocusability();
+    }
+  }
+
+  // `Focus` does not apply its own properties to an external node, so they
+  // are managed here.
+  void _updateFocusability() {
+    if (widget.disabled && _node.hasFocus) {
+      _node.unfocus();
+    }
     _node
-      ..removeListener(updateState)
-      ..dispose();
+      ..canRequestFocus = !widget.disabled
+      ..descendantsAreFocusable = !widget.disabled;
+  }
+
+  @override
+  void dispose() {
+    _node.dispose();
 
     _fallbackController?.dispose();
     super.dispose();
-  }
-
-  void updateState() {
-    setState(() {});
   }
 
   @override
@@ -298,6 +316,16 @@ class _MethodChannelCardFormFieldState
     with CardFormFieldContext {
   MethodChannel? _methodChannel;
 
+  late final PlatformViewFocusBridge _focusBridge;
+
+  /// The creation params are only read when the platform view is created, so
+  /// they are computed once instead of on every build.
+  Map<String, dynamic>? _creationParams;
+
+  /// Calls made before the native view - and with it the method call handler -
+  /// existed. Flushed by [onPlatformViewCreated].
+  final List<({String method, Object? arguments})> _pendingCalls = [];
+
   CardFormStyle? _lastStyle;
 
   CardFormStyle resolveStyle(CardFormStyle? style) {
@@ -309,6 +337,14 @@ class _MethodChannelCardFormFieldState
   @override
   void initState() {
     controller._context = this;
+    _focusBridge = PlatformViewFocusBridge(
+      focusNode: widget.focusNode,
+      traits: defaultTargetPlatform == TargetPlatform.android
+          ? const PlatformViewFocusTraits.android()
+          // The card form of the iOS SDK does not report its focused field.
+          : const PlatformViewFocusTraits.iOS(reportsFocusedField: false),
+      invokeMethod: _invokeMethod,
+    );
     // Reset card fields if dangerouslyUpdateFullCardDetails is false
     if (!widget.dangerouslyUpdateFullCardDetails) {
       if (kDebugMode &&
@@ -328,6 +364,7 @@ class _MethodChannelCardFormFieldState
 
   @override
   void dispose() {
+    _focusBridge.dispose();
     if (controller._context == this) {
       controller._context = null;
     }
@@ -335,10 +372,8 @@ class _MethodChannelCardFormFieldState
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Map<String, dynamic> _buildCreationParams() {
     final style = resolveStyle(widget.style);
-    // Pass parameters to the platform side.
     // Build placeholder map for hint text (Android only)
     final placeholder = <String, dynamic>{
       if (widget.numberHintText != null) 'number': widget.numberHintText,
@@ -349,7 +384,7 @@ class _MethodChannelCardFormFieldState
         'postalCode': widget.postalCodeHintText,
     };
 
-    final creationParams = <String, dynamic>{
+    return <String, dynamic>{
       'cardStyle': style.toJson(),
       'postalCodeEnabled': widget.enablePostalCode,
       'dangerouslyGetFullCardDetails': widget.dangerouslyGetFullCardDetails,
@@ -365,53 +400,41 @@ class _MethodChannelCardFormFieldState
       'defaultValues': {'countryCode': widget.countryCode},
       if (placeholder.isNotEmpty) 'placeholders': placeholder,
     };
+  }
 
-    Widget platform;
+  @override
+  Widget build(BuildContext context) {
+    // Pass parameters to the platform side.
+    final creationParams = _creationParams ??= _buildCreationParams();
+
+    final Widget platformView;
     if (defaultTargetPlatform == TargetPlatform.android) {
-      platform = Listener(
-        onPointerDown: (_) {
-          if (!widget.focusNode.hasFocus) {
-            widget.focusNode.requestFocus();
-          }
-        },
-        child: Focus(
-          autofocus: widget.autofocus,
-          focusNode: widget.focusNode,
-          onFocusChange: _handleFrameworkFocusChanged,
-          child: _AndroidCardFormField(
-            key: _MethodChannelCardFormField._key,
-            viewType: _MethodChannelCardFormField._viewType,
-            creationParams: creationParams,
-            onPlatformViewCreated: onPlatformViewCreated,
-          ),
-        ),
+      platformView = _AndroidCardFormField(
+        key: _MethodChannelCardFormField._key,
+        viewType: _MethodChannelCardFormField._viewType,
+        creationParams: creationParams,
+        onPlatformViewCreated: onPlatformViewCreated,
+        onPlatformViewFocused: _focusBridge.platformViewFocused,
       );
     } else if (defaultTargetPlatform == TargetPlatform.iOS) {
-      platform = Listener(
-        onPointerDown: (_) {
-          if (!widget.focusNode.hasFocus) {
-            widget.focusNode.requestFocus();
-          }
-        },
-        child: Focus(
-          autofocus: widget.autofocus,
-          descendantsAreFocusable: true,
-          focusNode: widget.focusNode,
-          onFocusChange: _handleFrameworkFocusChanged,
-          child: KeepVisibleOnFocus(
-            focusNode: widget.focusNode,
-            child: _UiKitCardFormField(
-              key: _MethodChannelCardFormField._key,
-              viewType: _MethodChannelCardFormField._viewType,
-              creationParams: creationParams,
-              onPlatformViewCreated: onPlatformViewCreated,
-            ),
-          ),
+      platformView = KeepVisibleOnFocus(
+        focusNode: widget.focusNode,
+        child: _UiKitCardFormField(
+          key: _MethodChannelCardFormField._key,
+          viewType: _MethodChannelCardFormField._viewType,
+          creationParams: creationParams,
+          onPlatformViewCreated: onPlatformViewCreated,
         ),
       );
     } else {
       throw UnsupportedError('Unsupported platform view');
     }
+
+    final platform = PlatformViewFocusScope(
+      bridge: _focusBridge,
+      autofocus: widget.autofocus,
+      child: platformView,
+    );
     final constraints =
         widget.constraints ??
         BoxConstraints.expand(
@@ -425,12 +448,9 @@ class _MethodChannelCardFormFieldState
 
   @override
   void didChangeDependencies() {
-    _lastStyle ??= resolveStyle(widget.style);
     final style = resolveStyle(widget.style);
-    if (style != _lastStyle) {
-      _methodChannel?.invokeMethod('onStyleChanged', {
-        'cardStyle': style.toJson(),
-      });
+    if (_lastStyle != null && style != _lastStyle) {
+      _invokeMethod('onStyleChanged', {'cardStyle': style.toJson()});
     }
     _lastStyle = style;
     super.didChangeDependencies();
@@ -438,37 +458,41 @@ class _MethodChannelCardFormFieldState
 
   @override
   void didUpdateWidget(covariant _MethodChannelCardFormField oldWidget) {
+    assert(
+      widget.focusNode == oldWidget.focusNode,
+      'The focus bridge holds on to the node it was created with.',
+    );
     if (widget.controller != oldWidget.controller) {
       assert(
         controller._context == null,
         'CardEditController is already attached to a CardView',
       );
-      oldWidget.controller._context = this;
+      if (oldWidget.controller._context == this) {
+        oldWidget.controller._context = null;
+      }
       controller._context = this;
     }
     if (widget.enablePostalCode != oldWidget.enablePostalCode) {
-      _methodChannel?.invokeMethod('onPostalCodeEnabledChanged', {
+      _invokeMethod('onPostalCodeEnabledChanged', {
         'postalCodeEnabled': widget.enablePostalCode,
       });
     }
 
     if (widget.countryCode != oldWidget.countryCode) {
-      _methodChannel?.invokeMethod('onDefaultValuesChanged', {
+      _invokeMethod('onDefaultValuesChanged', {
         'defaultValues': {'countryCode': widget.countryCode},
       });
     }
     if (widget.dangerouslyGetFullCardDetails !=
         oldWidget.dangerouslyGetFullCardDetails) {
-      _methodChannel?.invokeMethod('dangerouslyGetFullCardDetails', {
+      _invokeMethod('dangerouslyGetFullCardDetails', {
         'dangerouslyGetFullCardDetails': widget.dangerouslyGetFullCardDetails,
       });
     }
     _lastStyle ??= resolveStyle(oldWidget.style);
     final style = resolveStyle(widget.style);
     if (style != _lastStyle) {
-      _methodChannel?.invokeMethod('onStyleChanged', {
-        'cardStyle': style.toJson(),
-      });
+      _invokeMethod('onStyleChanged', {'cardStyle': style.toJson()});
     }
     _lastStyle = style;
     // Handle placeholder/hint text changes (Android only)
@@ -485,21 +509,45 @@ class _MethodChannelCardFormFieldState
           'postalCode': widget.postalCodeHintText,
       };
       // Use 'placeholders' as method name - Android delegate uses it as property name
-      _methodChannel?.invokeMethod('placeholders', placeholder);
+      _invokeMethod('placeholders', placeholder);
     }
     super.didUpdateWidget(oldWidget);
   }
 
   void onPlatformViewCreated(int viewId) {
     widget.focusNode.debugLabel = 'CardFormField(id: $viewId)';
-    _methodChannel = MethodChannel('flutter.stripe/card_form_field/$viewId');
-    _methodChannel?.setMethodCallHandler((call) async {
+    final methodChannel = MethodChannel(
+      'flutter.stripe/card_form_field/$viewId',
+    );
+    _methodChannel = methodChannel;
+    methodChannel.setMethodCallHandler((call) async {
       if (call.method == 'topFocusChange') {
         _handlePlatformFocusChanged(call.arguments);
       } else if (call.method == 'topFormComplete') {
         _handleCardChanged(call.arguments);
       }
     });
+
+    for (final call in _pendingCalls) {
+      _invokeMethod(call.method, call.arguments);
+    }
+    _pendingCalls.clear();
+    _focusBridge.platformViewCreated();
+  }
+
+  /// Sends [method] to the platform view, buffering it while the view does not
+  /// exist yet.
+  Future<void> _invokeMethod(String method, [Object? arguments]) async {
+    final methodChannel = _methodChannel;
+    if (methodChannel == null) {
+      _pendingCalls.add((method: method, arguments: arguments));
+      return;
+    }
+    try {
+      await methodChannel.invokeMethod<void>(method, arguments);
+    } on MissingPluginException {
+      // The view was disposed while the call was in flight.
+    }
   }
 
   void _handleCardChanged(dynamic arguments) {
@@ -529,12 +577,11 @@ class _MethodChannelCardFormFieldState
   void _handlePlatformFocusChanged(dynamic arguments) {
     try {
       final map = Map<String, dynamic>.from(arguments);
-      final field = CardFieldFocusName.fromJson(map);
-      if (field.focusedField != null &&
-          ambiguate(WidgetsBinding.instance)?.focusManager.primaryFocus !=
-              widget.focusNode) {
-        widget.focusNode.requestFocus();
+      if (map['focusedField'] == '') {
+        map['focusedField'] = null;
       }
+      final field = CardFieldFocusName.fromJson(map);
+      _focusBridge.platformFocusedFieldChanged(field.focusedField);
       widget.onFocus?.call(field.focusedField);
       // ignore: avoid_catches_without_on_clauses
     } catch (e) {
@@ -545,39 +592,19 @@ class _MethodChannelCardFormFieldState
     }
   }
 
-  /// Handler called when the focus changes in the node attached to the platform
-  /// view. This updates the correspondant platform view to keep it in sync.
-  void _handleFrameworkFocusChanged(bool isFocused) {
-    final methodChannel = _methodChannel;
-    if (methodChannel == null) {
-      return;
-    }
-    setState(() {});
-    if (!isFocused) {
-      blur();
-      focus();
-
-      return;
-    }
-  }
-
   @override
-  void blur() {
-    _methodChannel?.invokeMethod('blur');
-  }
+  void blur() => _focusBridge.blur();
 
   @override
   void clear() {
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       throw UnimplementedError('This method is not supported for iOS');
     }
-    _methodChannel?.invokeMethod('clear');
+    _invokeMethod('clear');
   }
 
   @override
-  void focus() {
-    _methodChannel?.invokeMethod('focus');
-  }
+  void focus() => _focusBridge.focus();
 
   @override
   void dangerouslyUpdateCardDetails(CardFieldInputDetails details) {
@@ -598,12 +625,17 @@ class _AndroidCardFormField extends StatelessWidget {
     required this.viewType,
     required this.creationParams,
     required this.onPlatformViewCreated,
+    required this.onPlatformViewFocused,
     super.key,
   });
 
   final String viewType;
   final Map<String, dynamic> creationParams;
   final PlatformViewCreatedCallback onPlatformViewCreated;
+
+  /// Called when the native view took the focus, with the callback that lets
+  /// the framework focus follow.
+  final void Function(VoidCallback grant) onPlatformViewFocused;
 
   @override
   Widget build(BuildContext context) {
@@ -618,7 +650,9 @@ class _AndroidCardFormField extends StatelessWidget {
         hitTestBehavior: PlatformViewHitTestBehavior.opaque,
       ),
       onCreatePlatformView: (params) {
-        onPlatformViewCreated(params.id);
+        // `create()` does not necessarily create the view: `initSurfaceAndroidView`
+        // defers that until the first layout. Hence the listener - arming the
+        // method channel earlier throws `MissingPluginException` on every call.
         return PlatformViewsService.initSurfaceAndroidView(
             id: params.id,
             viewType: viewType,
@@ -626,10 +660,11 @@ class _AndroidCardFormField extends StatelessWidget {
             creationParams: creationParams,
             creationParamsCodec: const StandardMessageCodec(),
             onFocus: () {
-              params.onFocusChanged(true);
+              onPlatformViewFocused(() => params.onFocusChanged(true));
             },
           )
           ..addOnPlatformViewCreatedListener(params.onPlatformViewCreated)
+          ..addOnPlatformViewCreatedListener(onPlatformViewCreated)
           ..create();
       },
     );

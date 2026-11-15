@@ -4,10 +4,12 @@ import android.annotation.SuppressLint
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.bridge.ReadableType
 import com.facebook.react.bridge.WritableArray
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.bridge.WritableNativeMap
 import com.stripe.android.PaymentAuthConfig
+import com.stripe.android.financialconnections.FinancialConnectionsPreCollectedConsent
 import com.stripe.android.financialconnections.analytics.FinancialConnectionsEvent
 import com.stripe.android.model.Address
 import com.stripe.android.model.BankAccount
@@ -152,6 +154,7 @@ internal fun mapPaymentMethodType(type: PaymentMethod.Type?): String =
     PaymentMethod.Type.CashAppPay -> "CashApp"
     PaymentMethod.Type.RevolutPay -> "RevolutPay"
     PaymentMethod.Type.PayByBank -> "PayByBank"
+    PaymentMethod.Type.Twint -> "Twint"
     PaymentMethod.Type.Link -> "Link"
     else -> "Unknown"
   }
@@ -184,6 +187,7 @@ internal fun mapToPaymentMethodType(type: String?): PaymentMethod.Type? =
     "CashApp" -> PaymentMethod.Type.CashAppPay
     "RevolutPay" -> PaymentMethod.Type.RevolutPay
     "PayByBank" -> PaymentMethod.Type.PayByBank
+    "Twint" -> PaymentMethod.Type.Twint
     "Link" -> PaymentMethod.Type.Link
     else -> null
   }
@@ -560,8 +564,11 @@ internal fun mapNextAction(
     NextActionType.CashAppRedirect,
     NextActionType.BlikAuthorize,
     NextActionType.UseStripeSdk,
+    NextActionType.AwaitAuthorization,
+    NextActionType.MbWayAwaitAuthorization,
     NextActionType.DisplayPayNowDetails,
     NextActionType.DisplayPromptPayDetails,
+    NextActionType.DisplayPixDetails,
     null,
     -> {
       return null
@@ -632,6 +639,26 @@ fun getValOr(
   map?.let {
     if (it.hasKey(key)) it.getString(key) else default
   } ?: default
+
+internal fun mapToPreCollectedConsent(params: ReadableMap): Result<FinancialConnectionsPreCollectedConsent?> {
+  val consentMap = params.getMap("preCollectedConsent") ?: return Result.success(null)
+  val consent = consentMap.getString("consent")
+  val hasNumericCollectedAt =
+    consentMap.hasKey("collectedAt") && consentMap.getType("collectedAt") == ReadableType.Number
+  if (consent.isNullOrEmpty() || !hasNumericCollectedAt) {
+    return Result.failure(
+      IllegalArgumentException(
+        "preCollectedConsent must include a non-empty consent string and a numeric collectedAt timestamp.",
+      ),
+    )
+  }
+  return Result.success(
+    FinancialConnectionsPreCollectedConsent(
+      consent = consent,
+      collectedAt = consentMap.getDouble("collectedAt").toLong(),
+    ),
+  )
+}
 
 internal fun mapToAddress(
   addressMap: ReadableMap?,
@@ -984,17 +1011,22 @@ internal fun mapToPreferredNetworks(networksAsInts: List<Int>?): List<CardBrand>
 internal fun mapFromFinancialConnectionsEvent(event: FinancialConnectionsEvent): WritableMap =
   Arguments.createMap().apply {
     putString("name", event.name.value)
+    putString("financialConnectionsSessionId", event.financialConnectionsSessionId)
 
     // We require keys to use pascal case, but the original map uses snake case.
     val tweakedMap =
       buildMap {
         put("institutionName", event.metadata.institutionName)
         put("manualEntry", event.metadata.manualEntry)
-        put("errorCode", event.metadata.errorCode)
+        put("errorCode", mapFinancialConnectionsEventErrorCode(event.metadata.errorCode))
       }
 
     putMap("metadata", tweakedMap.toReadableMap())
   }
+
+internal fun mapFinancialConnectionsEventErrorCode(
+  errorCode: FinancialConnectionsEvent.ErrorCode?
+): String? = errorCode?.value
 
 private fun List<Any?>.toWritableArray(): WritableArray {
   val writableArray = Arguments.createArray()
@@ -1140,10 +1172,10 @@ internal fun mapFromConfirmationToken(confirmationToken: ConfirmationToken): Wri
 @SuppressLint("RestrictedApi")
 private fun mapFromSetupFutureUsage(setupFutureUsage: ConfirmPaymentIntentParams.SetupFutureUsage?): String? =
   when (setupFutureUsage) {
-    ConfirmPaymentIntentParams.SetupFutureUsage.OnSession -> "on_session"
-    ConfirmPaymentIntentParams.SetupFutureUsage.OffSession -> "off_session"
-    ConfirmPaymentIntentParams.SetupFutureUsage.Blank -> ""
-    ConfirmPaymentIntentParams.SetupFutureUsage.None -> "none"
+    ConfirmPaymentIntentParams.SetupFutureUsage.OnSession -> "OnSession"
+    ConfirmPaymentIntentParams.SetupFutureUsage.OffSession -> "OffSession"
+    ConfirmPaymentIntentParams.SetupFutureUsage.Blank -> null
+    ConfirmPaymentIntentParams.SetupFutureUsage.None -> "None"
     null -> null
   }
 
