@@ -106,6 +106,8 @@ class MethodChannelStripe extends StripePlatform {
           _financialConnectionsEventHandler != null) {
         final event = FinancialConnectionsEvent(
           name: call.arguments['name'],
+          financialConnectionsSessionId:
+              call.arguments['financialConnectionsSessionId'],
           metadata: FinancialConnectionsEventMetadata.fromJson(
             call.arguments['metadata'],
           ),
@@ -556,14 +558,12 @@ class MethodChannelStripe extends StripePlatform {
     required String clientSecret,
     required PlatformPayConfirmParams params,
   }) async {
-    final result = await _methodChannel.invokeMapMethod<String, dynamic>(
-      'confirmPlatformPay',
-      {
-        'clientSecret': clientSecret,
-        'params': params.toJson(),
-        'isPaymentIntent': true,
-      },
-    );
+    final result = await _methodChannel
+        .invokeMapMethod<String, dynamic>('confirmPlatformPay', {
+          'clientSecret': clientSecret,
+          'params': params.toJson(),
+          'isPaymentIntent': true,
+        });
     return ResultParser<PaymentIntent>(
       parseJson: (json) => PaymentIntent.fromJson(json),
     ).parse(result: result!, successResultKey: 'paymentIntent');

@@ -439,8 +439,8 @@ extension StripePlugin: StripeSdkEmitter {
         self.sendEvent(withName: "onCustomerSessionProviderSetupIntentClientSecret", body: [:])
     }
     
-    func emitOnCustomerSessionProviderCustomerSessionClientSecret() {
-        self.sendEvent(withName: "onCustomerSessionProviderCustomerSessionClientSecret", body: [:])
+    func emitOnCustomerSessionProviderCustomerSessionClientSecret(_ value: [String : Any]) {
+        self.sendEvent(withName: "onCustomerSessionProviderCustomerSessionClientSecret", body: value)
     }
     
     func emitOnCustomPaymentMethodConfirmHandlerCallback(_ value: [String : Any]) {
@@ -508,8 +508,16 @@ extension StripePlugin: StripeSdkEmitter {
         self.sendEvent(withName: "embeddedPaymentElementLoadingFailed", body:value)
     }
 
-    func emitCheckoutSessionDidChangeState(_ value: [String : Any]) {
-        self.sendEvent(withName: "checkoutSessionDidChangeState", body: value)
+    func emitCheckoutControllerDidUpdate(_ value: [String : Any]) {
+        self.sendEvent(withName: "checkoutControllerDidUpdate", body: value)
+    }
+
+    func emitCheckoutControllerDidSelectPaymentOption(_ value: [String : Any]) {
+        self.sendEvent(withName: "checkoutControllerDidSelectPaymentOption", body: value)
+    }
+
+    func emitCheckoutServerUpdateRequested(_ value: [String : Any]) {
+        self.sendEvent(withName: "checkoutServerUpdateRequested", body: value)
     }
 
 }
